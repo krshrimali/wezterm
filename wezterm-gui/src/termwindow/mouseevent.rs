@@ -772,7 +772,8 @@ impl super::TermWindow {
                 stable_row,
             ));
 
-        pane.apply_hyperlinks(stable_row..stable_row + 1, &self.config.hyperlink_rules);
+        // pane.apply_hyperlinks(stable_row..stable_row + 1, &self.config.hyperlink_rules);
+        pane.apply_hyperlinks(stable_row..stable_row + 1, &self.config.filepath_rules);
 
         struct FindCurrentLink {
             current: Option<Arc<Hyperlink>>,
@@ -781,7 +782,7 @@ impl super::TermWindow {
         }
 
         struct FindCurrentPath {
-            current: Option<Arc<String>>,
+            current: Option<Arc<Hyperlink>>,
             stable_row: StableRowIndex,
             column: usize,
         }
@@ -804,7 +805,7 @@ impl super::TermWindow {
                 // log::info!("FindCurrentPath: {} {}", stable_top, self.stable_row);
                 if stable_top == self.stable_row {
                     if let Some(line) = lines.get(0) {
-                        log::info!("line: {:?}", line);
+                        // log::info!("line: {:?}", line);
                         if let Some(cell) = line.get_cell(self.column) {
                             // log::info!("cell: {:?}", cell);
                             self.current = cell.attrs().file_path().cloned();

@@ -311,6 +311,41 @@ impl Rule {
             })
             .collect()
     }
+
+    pub fn match_filepaths(line: &str, rules: &[Rule]) -> Vec<RuleMatch> {
+        let mut matches = Vec::new();
+        for rule in rules.iter() {
+            for capture_result in rule.regex.captures_iter(line) {
+                if let Ok(captures) = capture_result {
+                    log::info!("captured result for line: {}", line);
+                    let m = Match { rule, captures };
+                    if m.highlight().is_some() {
+                        matches.push(m);
+                    }
+                } else {
+                    log::info!("failed capturing result for line: {}", line);
+                }
+            }
+
+            // log::info!("Didn't capture anything, why? for line: {}", line);
+        }
+        // Sort the matches by descending match length.
+        // This is to avoid confusion if multiple rules match the
+        // same sections of text.
+        matches.sort_by(|a, b| b.len().cmp(&a.len()));
+
+        matches
+            .into_iter()
+            .map(|m| {
+                let url = m.expand();
+                let link = Arc::new(Hyperlink::new_implicit(url));
+                RuleMatch {
+                    link,
+                    range: m.range(),
+                }
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]

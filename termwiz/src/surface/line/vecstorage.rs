@@ -62,6 +62,42 @@ impl VecStorage {
 
         has_implicit_hyperlinks
     }
+
+    pub(crate) fn scan_and_create_filepaths(
+        &mut self,
+        line: &str,
+        matches: Vec<crate::hyperlink::RuleMatch>,
+    ) -> bool {
+        // The capture range is measured in bytes but we need to translate
+        // that to the index of the column.  This is complicated a bit further
+        // because double wide sequences have a blank column cell after them
+        // in the cells array, but the string we match against excludes that
+        // string.
+        let mut cell_idx = 0;
+        let mut has_implicit_hyperlinks = false;
+        for (byte_idx, _grapheme) in line.grapheme_indices(true) {
+            let cell = &mut self.cells[cell_idx];
+            let mut matched = false;
+            for m in &matches {
+                if m.range.contains(&byte_idx) {
+                    let attrs = cell.attrs_mut();
+                    // Don't replace existing links
+                    if attrs.file_path().is_none() {
+                        // attrs.set_hyperlink(Some(Arc::clone(&m.link)));
+                        attrs.set_file_path(Some(Arc::clone(&m.link)));
+                        matched = true;
+                    }
+                }
+            }
+            cell_idx += cell.width();
+            if matched {
+                has_implicit_hyperlinks = true;
+            }
+        }
+
+        has_implicit_hyperlinks
+    }
+
 }
 
 impl std::ops::Deref for VecStorage {

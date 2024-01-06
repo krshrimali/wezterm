@@ -370,6 +370,14 @@ end
             })?,
         )?;
 
+        wezterm_mod.set(
+            "default_filepath_rules",
+            lua.create_function(move |lua, ()| {
+                let rules = crate::config::default_filepath_rules();
+                Ok(to_lua(lua, rules))
+            })?,
+        )?;
+
         // Define our own os.getenv function that knows how to resolve current
         // environment values from eg: the registry on Windows, or for
         // the current SHELL value on unix, even if the user has changed

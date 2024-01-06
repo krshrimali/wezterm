@@ -81,7 +81,7 @@ struct FatAttributes {
     /// The hyperlink content, if any
     hyperlink: Option<Arc<Hyperlink>>,
     /// The file path content, if any
-    file_path: Option<Arc<String>>,
+    file_path: Option<Arc<Hyperlink>>,
     /// The image data, if any
     image: Vec<Box<ImageCell>>,
     /// The color of the underline.  If None, then
@@ -97,7 +97,8 @@ impl FatAttributes {
             link.compute_shape_hash(hasher);
         }
         if let Some(path) = &self.file_path {
-            path.hash(hasher);
+            // path.hash(hasher);
+            path.compute_shape_hash(hasher);
         }
         for cell in &self.image {
             cell.compute_shape_hash(hasher);
@@ -422,10 +423,12 @@ impl CellAttributes {
         }
     }
 
-    pub fn set_file_path(&mut self, path: Option<Arc<String>>) -> &mut Self {
+    pub fn set_file_path(&mut self, path: Option<Arc<Hyperlink>>) -> &mut Self {
+        log::info!("Setting file path");
         if path.is_none() && self.fat.is_none() {
             self
         } else {
+            log::info!("File path: {:}", path.clone().unwrap().uri());
             self.allocate_fat_attributes();
             self.fat.as_mut().unwrap().file_path = path;
             self.deallocate_fat_attributes_if_none();
@@ -533,7 +536,7 @@ impl CellAttributes {
         self.fat.as_ref().and_then(|fat| fat.hyperlink.as_ref())
     }
 
-    pub fn file_path(&self) -> Option<&Arc<String>> {
+    pub fn file_path(&self) -> Option<&Arc<Hyperlink>> {
         self.fat.as_ref().and_then(|fat| fat.file_path.as_ref())
     }
 
@@ -1048,7 +1051,7 @@ pub enum AttributeChange {
     Foreground(ColorAttribute),
     Background(ColorAttribute),
     Hyperlink(Option<Arc<Hyperlink>>),
-    FilePath(Option<Arc<String>>),
+    FilePath(Option<Arc<Hyperlink>>),
 }
 
 #[cfg(test)]

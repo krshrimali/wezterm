@@ -407,7 +407,7 @@ pub struct TermWindow {
     current_highlight: Option<Arc<Hyperlink>>,
 
     // The File URI over which we are currently hovering
-    current_file_highlight: Option<Arc<String>>,
+    current_file_highlight: Option<Arc<Hyperlink>>,
 
     quad_generation: usize,
     shape_generation: usize,
@@ -2659,7 +2659,7 @@ impl TermWindow {
             }
             CompleteSelectionOrOpenFileAtMouseCursor(dest) => {
                 let text = self.selection_text(pane);
-                log::info!("CompleteSelectionOrOpenFileAtMouseCursor: text={:?}", text.as_str());
+                // log::info!("CompleteSelectionOrOpenFileAtMouseCursor: text={:?}", text.as_str());
                 if !text.is_empty() {
                     self.copy_to_clipboard(*dest, text);
                     let window = self.window.as_ref().unwrap();
@@ -3047,7 +3047,7 @@ impl TermWindow {
                 log::info!("open_file_uri: link={:?}", link);
                 let default_click = match lua {
                     Some(lua) => {
-                        log::info!("open_file_uri: lua={:?}", lua);
+                        // log::info!("open_file_uri: lua={:?}", lua);
                         let args = lua.pack_multi((window, pane, link.clone()))?;
                         config::lua::emit_event(&lua, ("nvim".to_string(), args))
                             .await
@@ -3059,7 +3059,7 @@ impl TermWindow {
                     None => true,
                 };
                 if default_click {
-                    log::info!("opening file from function {}", link);
+                    // log::info!("opening file from function {}", link);
                     wezterm_open_url::open_default_text_editor(&link);
                 }
                 Ok(())

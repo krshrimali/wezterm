@@ -246,6 +246,9 @@ pub struct Config {
     #[dynamic(default = "default_hyperlink_rules")]
     pub hyperlink_rules: Vec<hyperlink::Rule>,
 
+    #[dynamic(default = "default_filepath_rules")]
+    pub filepath_rules: Vec<hyperlink::Rule>,
+
     /// What to set the TERM variable to
     #[dynamic(default = "default_term")]
     pub term: String,
@@ -1632,11 +1635,20 @@ pub fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         hyperlink::Rule::with_highlight(r"\((\w+://\S+)\)", "$1", 1).unwrap(),
         hyperlink::Rule::with_highlight(r"\[(\w+://\S+)\]", "$1", 1).unwrap(),
         hyperlink::Rule::with_highlight(r"<(\w+://\S+)>", "$1", 1).unwrap(),
+        hyperlink::Rule::with_highlight(r"\((\w+)\)", "$1", 1).unwrap(),
         // Then handle URLs not wrapped in brackets
         // and include terminating ), / or - characters, if any
         hyperlink::Rule::new(r"\b\w+://\S+[)/a-zA-Z0-9-]+", "$0").unwrap(),
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
+    ]
+}
+
+pub fn default_filepath_rules() -> Vec<hyperlink::Rule> {
+    vec![
+        // NOTE: Just checking if it works for a simple rust file path
+        // hyperlink::Rule::with_highlight(r"^.*\.rs$", "$0", 1).unwrap(),
+        hyperlink::Rule::with_highlight(r"(.+)$", "$0", 1).unwrap(),
     ]
 }
 

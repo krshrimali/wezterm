@@ -1,6 +1,6 @@
 use crate::cell::{Cell, CellAttributes, SemanticType, UnicodeVersion};
 use crate::cellcluster::CellCluster;
-use crate::hyperlink::Rule;
+use crate::hyperlink::{self, Rule};
 use crate::surface::line::cellref::CellRef;
 use crate::surface::line::clusterline::ClusteredLine;
 use crate::surface::line::linebits::LineBits;
@@ -526,12 +526,52 @@ impl Line {
 
         let matches = Rule::match_hyperlinks(&line, rules);
         if matches.is_empty() {
+            log::info!("Hyperlink: no match found");
             return;
         }
+        log::info!("No link found");
 
         let line = line.into_owned();
         let cells = self.coerce_vec_storage();
         if cells.scan_and_create_hyperlinks(&line, matches) {
+            self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
+        }
+    }
+
+    pub fn scan_and_create_filepaths(&mut self, rules: &[Rule]) {
+        log::info!("Checking for line");
+        // if (self.bits & LineBits::SCANNED_IMPLICIT_HYPERLINKS)
+        //     == LineBits::SCANNED_IMPLICIT_HYPERLINKS
+        // {
+        //     // Has not changed since last time we scanned
+        //     return;
+        // }
+
+        // FIXME: let's build a string and a byte-to-cell map here, and
+        // use this as an opportunity to rebuild HAS_HYPERLINK, skip matching
+        // cells with existing non-implicit hyperlinks, and avoid matching
+        // text with zero-width cells.
+        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
+        self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
+        let line = self.as_str();
+
+        // log::info!("Rules: {:?}", rules);
+        // let rules = crate::config::default_filepath_rules();
+        let rules = &[
+            // NOTE: Just checking if it works for a simple rust file path
+            // hyperlink::Rule::with_highlight(r"^.*\.rs$", "$0", 1).unwrap(),
+            hyperlink::Rule::with_highlight(r"\b^[a-z0-9]+\.[a-z]+.*([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[e]([+-]?\d+))?[a-z][a-z]$", "$1", 1).unwrap(),
+        ];
+        let matches = Rule::match_filepaths(&line, rules);
+        if matches.is_empty() {
+            log::info!("[file path] No matches found");
+            return;
+        }
+        log::info!("[file path] Match found");
+
+        let line = line.into_owned();
+        let cells = self.coerce_vec_storage();
+        if cells.scan_and_create_filepaths(&line, matches) {
             self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
         }
     }
@@ -572,7 +612,8 @@ impl Line {
         let seq = logical.current_seqno();
 
         logical.invalidate_implicit_hyperlinks(seq);
-        logical.scan_and_create_hyperlinks(rules);
+        // logical.scan_and_create_hyperlinks(rules);
+        logical.scan_and_create_filepaths(rules);
 
         if !logical.has_hyperlink() {
             for line in logical_line.iter_mut() {

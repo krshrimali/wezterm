@@ -450,6 +450,7 @@ impl RenderableInner {
         fetch_start: Option<Instant>,
     ) {
         line.scan_and_create_hyperlinks(&config.hyperlink_rules);
+        line.scan_and_create_filepaths(&config.filepath_rules);
 
         let entry = if let Some(fetch_start) = fetch_start {
             // If we're completing a fetch, only replace entries that were
