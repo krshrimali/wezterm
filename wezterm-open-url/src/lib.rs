@@ -32,6 +32,27 @@ pub fn open_url(url: &str) {
 }
 
 #[cfg(not(windows))]
+pub fn open_default_text_editor(path: &str) {
+    let path_str = path.to_string();
+    std::thread::spawn(move || {
+        // TODO: @krshrimali for now - only doing for MacOS
+        #[cfg(target_os = "macos")]
+        let candidates: &[&[&str]] = &[&["/usr/bin/open", "-e", &path_str]];
+
+        for candidate in candidates {
+            let mut cmd = std::process::Command::new(candidate[0]);
+            cmd.args(&candidate[1..]);
+
+            if let Ok(status) = cmd.status() {
+                if status.success() {
+                    return;
+                }
+            }
+        }
+    });
+}
+
+#[cfg(not(windows))]
 pub fn open_with(url: &str, app: &str) {
     let url = url.to_string();
     let app = app.to_string();

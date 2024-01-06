@@ -557,6 +557,7 @@ pub enum KeyAssignment {
     ClearSelection,
     CompleteSelection(ClipboardCopyDestination),
     CompleteSelectionOrOpenLinkAtMouseCursor(ClipboardCopyDestination),
+    CompleteSelectionOrOpenFileAtMouseCursor(ClipboardCopyDestination),
     StartWindowDrag,
 
     AdjustPaneSize(PaneDirection, usize),

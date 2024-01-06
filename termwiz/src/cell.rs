@@ -80,6 +80,8 @@ impl std::fmt::Debug for CellAttributes {
 struct FatAttributes {
     /// The hyperlink content, if any
     hyperlink: Option<Arc<Hyperlink>>,
+    /// The file path content, if any
+    file_path: Option<Arc<String>>,
     /// The image data, if any
     image: Vec<Box<ImageCell>>,
     /// The color of the underline.  If None, then
@@ -93,6 +95,9 @@ impl FatAttributes {
     pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
         if let Some(link) = &self.hyperlink {
             link.compute_shape_hash(hasher);
+        }
+        if let Some(path) = &self.file_path {
+            path.hash(hasher);
         }
         for cell in &self.image {
             cell.compute_shape_hash(hasher);
@@ -379,6 +384,7 @@ impl CellAttributes {
         if self.fat.is_none() {
             self.fat.replace(Box::new(FatAttributes {
                 hyperlink: None,
+                file_path: None,
                 image: vec![],
                 underline_color: ColorAttribute::Default,
                 foreground: ColorAttribute::Default,
@@ -394,6 +400,7 @@ impl CellAttributes {
             .map(|fat| {
                 fat.image.is_empty()
                     && fat.hyperlink.is_none()
+                    && fat.file_path.is_none()
                     && fat.underline_color == ColorAttribute::Default
                     && fat.foreground == ColorAttribute::Default
                     && fat.background == ColorAttribute::Default
@@ -410,6 +417,17 @@ impl CellAttributes {
         } else {
             self.allocate_fat_attributes();
             self.fat.as_mut().unwrap().hyperlink = link;
+            self.deallocate_fat_attributes_if_none();
+            self
+        }
+    }
+
+    pub fn set_file_path(&mut self, path: Option<Arc<String>>) -> &mut Self {
+        if path.is_none() && self.fat.is_none() {
+            self
+        } else {
+            self.allocate_fat_attributes();
+            self.fat.as_mut().unwrap().file_path = path;
             self.deallocate_fat_attributes_if_none();
             self
         }
@@ -515,6 +533,10 @@ impl CellAttributes {
         self.fat.as_ref().and_then(|fat| fat.hyperlink.as_ref())
     }
 
+    pub fn file_path(&self) -> Option<&Arc<String>> {
+        self.fat.as_ref().and_then(|fat| fat.file_path.as_ref())
+    }
+
     /// Returns the list of attached images in z-index order.
     /// Returns None if there are no attached images; will
     /// never return Some(vec![]).
@@ -565,6 +587,10 @@ impl CellAttributes {
             }
             Hyperlink(value) => {
                 self.set_hyperlink(value.clone());
+            }
+            FilePath(value) => {
+                log::info!("apply_change: FilePath({:?})", value);
+                self.set_file_path(value.clone());
             }
         }
     }
@@ -1022,6 +1048,7 @@ pub enum AttributeChange {
     Foreground(ColorAttribute),
     Background(ColorAttribute),
     Hyperlink(Option<Arc<Hyperlink>>),
+    FilePath(Option<Arc<String>>),
 }
 
 #[cfg(test)]

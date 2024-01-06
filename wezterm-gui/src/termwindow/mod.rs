@@ -406,6 +406,9 @@ pub struct TermWindow {
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
 
+    // The File URI over which we are currently hovering
+    current_file_highlight: Option<Arc<String>>,
+
     quad_generation: usize,
     shape_generation: usize,
     shape_cache: RefCell<LfuCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo>>>>>,
@@ -708,6 +711,7 @@ impl TermWindow {
             current_mouse_capture: None,
             last_mouse_click: None,
             current_highlight: None,
+            current_file_highlight: None,
             quad_generation: 0,
             shape_generation: 0,
             shape_cache: RefCell::new(LfuCache::new(
@@ -1251,6 +1255,7 @@ impl TermWindow {
 
                 self.clear_all_overlays();
                 self.current_highlight.take();
+                self.current_file_highlight.take();
                 self.invalidate_fancy_tab_bar();
                 self.invalidate_modal();
 
@@ -2636,6 +2641,9 @@ impl TermWindow {
             OpenLinkAtMouseCursor => {
                 self.do_open_link_at_mouse_cursor(pane);
             }
+            OpenFileAtMouseCursor => {
+                self.do_open_file_at_mouse_cursor(pane);
+            }
             EmitEvent(name) => {
                 self.emit_window_event(name, None);
             }
@@ -2647,6 +2655,17 @@ impl TermWindow {
                     window.invalidate();
                 } else {
                     self.do_open_link_at_mouse_cursor(pane);
+                }
+            }
+            CompleteSelectionOrOpenFileAtMouseCursor(dest) => {
+                let text = self.selection_text(pane);
+                log::info!("CompleteSelectionOrOpenFileAtMouseCursor: text={:?}", text.as_str());
+                if !text.is_empty() {
+                    self.copy_to_clipboard(*dest, text);
+                    let window = self.window.as_ref().unwrap();
+                    window.invalidate();
+                } else {
+                    self.do_open_file_at_mouse_cursor(pane);
                 }
             }
             CompleteSelection(dest) => {
@@ -3005,6 +3024,56 @@ impl TermWindow {
             .detach();
         }
     }
+
+    fn do_open_file_at_mouse_cursor(&self, pane: &Arc<dyn Pane>) {
+        // They clicked on a link, so let's open it!
+        // We need to ensure that we spawn the `open` call outside of the context
+        // of our window loop; on Windows it can cause a panic due to
+        // triggering our WndProc recursively.
+        // We get that assurance for free as part of the async dispatch that we
+        // perform below; here we allow the user to define an `open-uri` event
+        // handler that can bypass the normal `open_url` functionality.
+        let current_highlight = self.current_file_highlight.as_ref().cloned();
+        if let Some(link) = current_highlight {
+            let window = GuiWin::new(self);
+            let pane = MuxPane(pane.pane_id());
+
+            async fn open_file_uri(
+                lua: Option<Rc<mlua::Lua>>,
+                window: GuiWin,
+                pane: MuxPane,
+                link: String,
+            ) -> anyhow::Result<()> {
+                log::info!("open_file_uri: link={:?}", link);
+                let default_click = match lua {
+                    Some(lua) => {
+                        log::info!("open_file_uri: lua={:?}", lua);
+                        let args = lua.pack_multi((window, pane, link.clone()))?;
+                        config::lua::emit_event(&lua, ("nvim".to_string(), args))
+                            .await
+                            .map_err(|e| {
+                                log::error!("while processing nvim event: {:#}", e);
+                                e
+                            })?
+                    }
+                    None => true,
+                };
+                if default_click {
+                    log::info!("opening file from function {}", link);
+                    wezterm_open_url::open_default_text_editor(&link);
+                }
+                Ok(())
+            }
+
+            promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+                open_file_uri(lua, window, pane, link.to_string())
+            }))
+            .detach();
+        } else {
+            log::info!("no file highlight");
+        }
+    }
+
     fn close_current_pane(&mut self, confirm: bool) {
         let mux_window_id = self.mux_window_id;
         let mux = Mux::get();

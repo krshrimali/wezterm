@@ -180,11 +180,27 @@ impl InputMap {
                     },
                     MouseEventTrigger::Up {
                         streak: 1,
-                        button: MouseButton::Left
+                        button: MouseButton::Right
                     },
-                    CompleteSelectionOrOpenLinkAtMouseCursor(
+                    CompleteSelectionOrOpenFileAtMouseCursor(
                         ClipboardCopyDestination::ClipboardAndPrimarySelection
                     )
+                ],
+                [
+                    MouseEventTriggerMods {
+                        mods: Modifiers::SHIFT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
+                    MouseEventTrigger::Up {
+                        streak: 1,
+                        button: MouseButton::Left
+                    },
+                    CompleteSelectionOrOpenFileAtMouseCursor(
+                        ClipboardCopyDestination::ClipboardAndPrimarySelection
+                    ) // CompleteSelectionOrOpenLinkAtMouseCursor(
+                      //     ClipboardCopyDestination::ClipboardAndPrimarySelection
+                      // )
                 ],
                 [
                     MouseEventTriggerMods {

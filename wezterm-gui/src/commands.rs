@@ -1573,6 +1573,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Shell"],
             icon: None,
         },
+        OpenFileAtMouseCursor => CommandDef {
+            brief: "Open file at mouse cursor".into(),
+            doc: "If there is no link under the mouse cursor, has no effect.".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+            icon: None,
+        },
         ShowLauncherArgs(_) | ShowLauncher => CommandDef {
             brief: "Show the launcher".into(),
             doc: "Shows the launcher menu".into(),
@@ -1756,6 +1764,22 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             .into(),
             doc: format!(
                 "If the mouse is over a link, open it, otherwise, completes \
+                text selection using the mouse, and copies to {destination:?}"
+            )
+            .into(),
+            keys: vec![],
+            args: &[],
+            menubar: &[],
+            icon: None,
+        },
+        CompleteSelectionOrOpenFileAtMouseCursor(destination) => CommandDef {
+            brief: format!(
+                "Open a file or Completes selection \
+            by copying to {destination:?}"
+            )
+            .into(),
+            doc: format!(
+                "If the mouse is over a file path, open it, otherwise, completes \
                 text selection using the mouse, and copies to {destination:?}"
             )
             .into(),
@@ -2089,5 +2113,6 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ShowDebugOverlay,
         // ----------------- Misc
         OpenLinkAtMouseCursor,
+        // OpenFileAtMouseCursor,
     ];
 }

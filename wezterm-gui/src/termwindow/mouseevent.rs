@@ -780,12 +780,34 @@ impl super::TermWindow {
             column: usize,
         }
 
+        struct FindCurrentPath {
+            current: Option<Arc<String>>,
+            stable_row: StableRowIndex,
+            column: usize,
+        }
+
         impl WithPaneLines for FindCurrentLink {
             fn with_lines_mut(&mut self, stable_top: StableRowIndex, lines: &mut [&mut Line]) {
                 if stable_top == self.stable_row {
                     if let Some(line) = lines.get(0) {
                         if let Some(cell) = line.get_cell(self.column) {
+                            // log::info!("cell: {:?}", cell.attrs());
                             self.current = cell.attrs().hyperlink().cloned();
+                        }
+                    }
+                }
+            }
+        }
+
+        impl WithPaneLines for FindCurrentPath {
+            fn with_lines_mut(&mut self, stable_top: StableRowIndex, lines: &mut [&mut Line]) {
+                // log::info!("FindCurrentPath: {} {}", stable_top, self.stable_row);
+                if stable_top == self.stable_row {
+                    if let Some(line) = lines.get(0) {
+                        log::info!("line: {:?}", line);
+                        if let Some(cell) = line.get_cell(self.column) {
+                            // log::info!("cell: {:?}", cell);
+                            self.current = cell.attrs().file_path().cloned();
                         }
                     }
                 }
@@ -797,8 +819,19 @@ impl super::TermWindow {
             stable_row,
             column,
         };
-        pane.with_lines_mut(stable_row..stable_row + 1, &mut find_link);
+
+        let mut find_file_path = FindCurrentPath {
+            current: None,
+            stable_row,
+            column,
+        };
+
+        // pane.with_lines_mut(stable_row..stable_row + 1, &mut find_link);
+        pane.with_lines_mut(stable_row..stable_row + 1, &mut find_file_path);
+        // log::info!("find_link: {:?}", find_link.current);
+        // log::info!("find_file_path: {:?}", find_file_path.current);
         let new_highlight = find_link.current;
+        let new_file_highlight = find_file_path.current;
 
         match (self.current_highlight.as_ref(), new_highlight) {
             (Some(old_link), Some(new_link)) if Arc::ptr_eq(&old_link, &new_link) => {
@@ -815,20 +848,37 @@ impl super::TermWindow {
             }
         };
 
+        match (self.current_file_highlight.as_ref(), new_file_highlight) {
+            (Some(old_path), Some(new_path)) if Arc::ptr_eq(&old_path, &new_path) => {
+                // Unchanged
+            }
+            (None, None) => {
+                // Unchanged
+            }
+            (_, rhs) => {
+                // We're hovering over a different path URL, so invalidate and repaint
+                // so that we render the underline correctly
+                self.current_file_highlight = rhs;
+                context.invalidate();
+            }
+        };
+
         let outside_window = event.coords.x < 0
             || event.coords.x as usize > self.dimensions.pixel_width
             || event.coords.y < 0
             || event.coords.y as usize > self.dimensions.pixel_height;
 
-        context.set_cursor(Some(if self.current_highlight.is_some() {
-            // When hovering over a hyperlink, show an appropriate
-            // mouse cursor to give the cue that it is clickable
-            MouseCursor::Hand
-        } else if pane.is_mouse_grabbed() || outside_window {
-            MouseCursor::Arrow
-        } else {
-            MouseCursor::Text
-        }));
+        context.set_cursor(Some(
+            if (self.current_highlight.is_some() || self.current_file_highlight.is_some()) {
+                // When hovering over a hyperlink or a file path, show an appropriate
+                // mouse cursor to give the cue that it is clickable
+                MouseCursor::Hand
+            } else if pane.is_mouse_grabbed() || outside_window {
+                MouseCursor::Arrow
+            } else {
+                MouseCursor::Text
+            },
+        ));
 
         let event_trigger_type = match &event.kind {
             WMEK::Press(press) => {

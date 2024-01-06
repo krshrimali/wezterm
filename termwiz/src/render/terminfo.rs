@@ -461,6 +461,11 @@ impl TerminfoRenderer {
                         attr.set_hyperlink(link.clone());
                     });
                 }
+                Change::Attribute(AttributeChange::FilePath(path)) => {
+                    self.attr_apply(|attr| {
+                        attr.set_file_path(path.clone());
+                    });
+                }
                 Change::AllAttributes(all) => {
                     self.pending_attr = Some(all.clone());
                 }
