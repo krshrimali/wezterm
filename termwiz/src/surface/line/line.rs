@@ -536,6 +536,23 @@ impl Line {
         }
     }
 
+    pub fn scan_and_create_filepaths(&mut self, rules: &[Rule]) {
+        if (self.bits & LineBits::SCANNED_IMPLICIT_FILEPATHS == LineBits::SCANNED_IMPLICIT_FILEPATHS) {
+            return;
+        }
+
+        let matches = Rule::match_file_paths(&line, rules);
+        if matches.is_empty() {
+            return;
+        }
+
+        let line = line.into_owned();
+        let cells = self.coerce_vec_storage();
+        if cells.scan_and_create_filepaths(&line, m atches) {
+            self.bits |= LineBits::HAS_IMPLICIT_FILEPATHS;
+        }
+    }
+
     /// Scan through a logical line that is comprised of an array of
     /// physical lines and look for sequences that match the provided
     /// rules.  Matching sequences are considered to be implicit hyperlinks

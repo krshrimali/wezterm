@@ -3,6 +3,8 @@ use crate::color::{ColorAttribute, PaletteIndex};
 pub use crate::emoji::Presentation;
 use crate::emoji_variation::WCWIDTH_TABLE;
 pub use crate::escape::osc::Hyperlink;
+// NOTE: This is work in progress
+pub use crate::escape::osc::FilePath;
 use crate::image::ImageCell;
 use crate::widechar_width::WcWidth;
 use finl_unicode::grapheme_clusters::Graphemes;
@@ -81,7 +83,7 @@ struct FatAttributes {
     /// The hyperlink content, if any
     hyperlink: Option<Arc<Hyperlink>>,
     /// The file path content, if any
-    file_path: Option<Arc<String>>,
+    file_path: Option<Arc<FilePath>>,
     /// The image data, if any
     image: Vec<Box<ImageCell>>,
     /// The color of the underline.  If None, then
