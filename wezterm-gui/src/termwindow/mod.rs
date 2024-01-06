@@ -3066,7 +3066,7 @@ impl TermWindow {
             }
 
             promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-                open_file_uri(lua, window, pane, link.to_string())
+                open_file_uri(lua, window, pane, link.uri().to_string())
             }))
             .detach();
         } else {

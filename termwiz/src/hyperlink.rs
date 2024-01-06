@@ -315,6 +315,8 @@ impl Rule {
     pub fn match_filepaths(line: &str, rules: &[Rule]) -> Vec<RuleMatch> {
         let mut matches = Vec::new();
         for rule in rules.iter() {
+            log::info!("trying rule: {:?}", rule);
+            log::info!("line for rule: {:?}", line);
             for capture_result in rule.regex.captures_iter(line) {
                 if let Ok(captures) = capture_result {
                     log::info!("captured result for line: {}", line);

@@ -560,7 +560,26 @@ impl Line {
         let rules = &[
             // NOTE: Just checking if it works for a simple rust file path
             // hyperlink::Rule::with_highlight(r"^.*\.rs$", "$0", 1).unwrap(),
-            hyperlink::Rule::with_highlight(r"\b^[a-z0-9]+\.[a-z]+.*([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[e]([+-]?\d+))?[a-z][a-z]$", "$1", 1).unwrap(),
+            // hyperlink::Rule::with_highlight(r"\b^[a-z0-9]+\.[a-z]+.*([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[e]([+-]?\d+))?[a-z][a-z]$", "$1", 1).unwrap(),
+            // hyperlink::Rule::with_highlight(r"^(?:[a-zA-Z]:\\|\\\\)?(?:[^<>:\"/\\|?*]+\\)+[^<>:\"/\\|?*]+$", "$1", 1).unwrap(),
+            // hyperlink::Rule::with_highlight(
+            //     r#"
+            //     ^(?:[a-zA-Z]:\\|\\\\)?  # Drive letter or UNC path prefix
+            //     (?:[^<>:"/\\|?*]+\\)+  # Directory names with backslashes
+            //     [^<>:"/\\|?*]+$        # File or directory name without special characters
+            // "#,
+            //     "$1",
+            //     1,
+            // )
+            // .unwrap(),
+
+            // ^[^<>:"/\\|?*]*[^<>:"/\\|?*]+\.[^<>:"/\\|?*]+$
+            hyperlink::Rule::with_highlight(
+                r#"\S+\s+([^\s]+)"#,
+                "$1",
+                1,
+            )
+            .unwrap(),
         ];
         let matches = Rule::match_filepaths(&line, rules);
         if matches.is_empty() {
